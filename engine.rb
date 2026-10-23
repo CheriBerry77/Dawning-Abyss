@@ -12,11 +12,11 @@ PATHWAYS = [
 ]
 
 Item  = Struct.new(:id, :name, :desc, :heal)
-Place = Struct.new(:id, :name, :art, :exits, :stock)   # stock (Hash item_id => price) is set only for stores
+Place = Struct.new(:id, :name, :image, :exits, :stock)   # stock (Hash item_id => price) is set only for stores
 Npc   = Struct.new(:name, :place, :dialogue)
-Enemy = Struct.new(:name, :place, :hp, :atk, :pounds)
+Enemy = Struct.new(:name, :place, :hp, :atk, :gold)
 Quest = Struct.new(:id, :title, :giver, :objective, :reward)
-Hero  = Struct.new(:pathway, :role, :hp, :max_hp, :atk, :pounds, :inv, :quests, :place)
+Hero  = Struct.new(:pathway, :role, :hp, :max_hp, :atk, :gold, :inv, :quests, :place)
 
 ITEMS = {}; PLACES = {}; NPCS = {}; ENEMIES = {}; QUESTS = {}
 $hero = nil; $foe = nil; $mode = :select; $start = nil; $start_items = {}
@@ -32,11 +32,15 @@ module UI
     s.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
   end
 
-  # Static window: every character gets a fixed-width cell so the proportional Silver font keeps ASCII art aligned.
-  def self.view(art, title = "", spaced = false)
-    rows = art.lines.map { |l| "<div>" + l.chomp.chars.map { |c| "<i>#{c == ' ' ? '&nbsp;' : esc(c)}</i>" }.join + "</div>" }
-    el("view")[:innerHTML] = rows.join
-    el("view")[:className] = spaced ? "spaced" : ""
+  # Static window: shows a PNG for the location (put files in images/). A missing file falls back to a plain labelled panel.
+  def self.image(src, title = "", overlay = "")
+    el("view")[:innerHTML] = "<div class='pic'><span class='ph'>#{esc(title)}</span><img src='#{esc(src.to_s)}' alt='#{esc(title)}' onerror=\"this.style.display='none'\">#{overlay}</div>"
+    el("loc")[:textContent] = title
+  end
+
+  # Static window used as a menu (pathway selection).
+  def self.list(heading, items, title = "")
+    el("view")[:innerHTML] = "<div class='sel'><div class='hd'>#{esc(heading)}</div><div class='grid'>" + items.map { |t| "<div>#{esc(t)}</div>" }.join + "</div></div>"
     el("loc")[:textContent] = title
   end
 
@@ -55,7 +59,7 @@ module UI
 
   def self.hud
     h = $hero
-    el("hud")[:textContent] = h ? "#{h.role} (#{h.pathway}) | HP #{h.hp}/#{h.max_hp} | pounds #{h.pounds}" : ""
+    el("hud")[:textContent] = h ? "#{h.role} (#{h.pathway}) | HP #{h.hp}/#{h.max_hp} | Gold #{h.gold}" : ""
   end
 
   def self.on_command(&handler)
@@ -76,9 +80,9 @@ def create_item(id, name, desc = "", heal: 0)
   ITEMS[id] = Item.new(id, name, desc, heal)
 end
 
-# Instanced location. Reach it with "go <name>" from any location that lists it in exits:.
-def create_location(id, name, art:, exits: [])
-  PLACES[id] = Place.new(id, name, art, exits, nil)
+# Instanced location; image is a PNG path such as "images/street.png". Reach it with "go <name>" from any location that lists it in exits:.
+def create_location(id, name, image:, exits: [])
+  PLACES[id] = Place.new(id, name, image, exits, nil)
 end
 
 # NPC: can only be spoken to while the hero is in `location`. dialogue is a String or an Array of Strings.
@@ -87,17 +91,17 @@ def create_npc(name, location, dialogue)
 end
 
 # Store = instanced location + a keeper NPC. stock maps item ids to prices. Talk to the keeper, then "buy <item>".
-def create_store(id, name, art:, exits:, keeper:, dialogue:, stock:)
-  PLACES[id] = Place.new(id, name, art, exits, stock)
+def create_store(id, name, image:, exits:, keeper:, dialogue:, stock:)
+  PLACES[id] = Place.new(id, name, image, exits, stock)
   create_npc(keeper, id, dialogue)
 end
 
-def create_enemy(name, location, hp:, atk:, pounds: 0)
-  ENEMIES[name] = Enemy.new(name, location, hp, atk, pounds)
+def create_enemy(name, location, hp:, atk:, gold: 0)
+  ENEMIES[name] = Enemy.new(name, location, hp, atk, gold)
 end
 
 # objective: { type: :defeat, enemy: "Name" }  (reward on victory)
-#         or { type: :deliver, item: :item_id } (give it to the giver NPC). reward: { pounds: 10, items: [:id] }
+#         or { type: :deliver, item: :item_id } (give it to the giver NPC). reward: { gold: 10, items: [:id] }
 def create_quest(id, title, giver:, objective:, reward:)
   QUESTS[id] = Quest.new(id, title, giver, objective, reward)
 end
@@ -126,14 +130,9 @@ def here
   PLACES[$hero.place]
 end
 
-def hp_bar(v, m, n = 24)
-  f = [[v, 0].max * n / m, n].min
-  "[" + "#" * f + "-" * (n - f) + "]"
-end
-
 # ---------------------------------------------------------------- places
 def show_place
-  UI.view(here.art, here.name)
+  UI.image(here.image, here.name)
   UI.hud
 end
 
@@ -164,10 +163,10 @@ end
 def complete_quest(q)
   $hero.quests[q.id] = :done
   r = q.reward
-  $hero.pounds += r[:pounds].to_i
+  $hero.gold += r[:gold].to_i
   Array(r[:items]).each { |i| give_item(i) }
   names = Array(r[:items]).map { |i| ITEMS[i].name }
-  UI.print("[Quest complete] #{q.title}. Reward: #{r[:pounds].to_i} pounds#{names.empty? ? '' : ', ' + names.join(', ')}.", "good")
+  UI.print("[Quest complete] #{q.title}. Reward: #{r[:gold].to_i} gold#{names.empty? ? '' : ', ' + names.join(', ')}.", "good")
   UI.hud
 end
 
@@ -193,7 +192,7 @@ def talk(text)
   end
   return unless here.stock && npc.place == here.id
   UI.print("For sale:", "dim")
-  here.stock.each { |id, price| UI.print("  #{ITEMS[id].name} - #{price} pounds (#{ITEMS[id].desc})", "dim") }
+  here.stock.each { |id, price| UI.print("  #{ITEMS[id].name} - #{price} gold (#{ITEMS[id].desc})", "dim") }
 end
 
 def buy(text)
@@ -201,10 +200,10 @@ def buy(text)
   id = here.stock.keys.find { |i| ITEMS[i].name.downcase.include?(text.downcase) } unless text.empty?
   return UI.print("The shop doesn't sell that.") unless id
   price = here.stock[id]
-  return UI.print("You need #{price} pounds.") if $hero.pounds < price
-  $hero.pounds -= price
+  return UI.print("You need #{price} gold.") if $hero.gold < price
+  $hero.gold -= price
   give_item(id)
-  UI.print("You bought #{ITEMS[id].name} for #{price} pounds.", "good")
+  UI.print("You bought #{ITEMS[id].name} for #{price} gold.", "good")
   UI.hud
 end
 
@@ -232,14 +231,6 @@ def use_item(text)
 end
 
 # ---------------------------------------------------------------- battle
-BATTLE_ART = <<~'ART'
-                                  .-""""-.
-                                 /  ?  ?  \
-                                |    __    |
-                                 \  \__/  /
-                                  '------'
-ART
-
 # Start a turn-based battle. In battle the text box accepts: fight | item <name> | run
 def battle(enemy)
   e = enemy.is_a?(Enemy) ? enemy : ENEMIES[enemy]
@@ -249,9 +240,14 @@ def battle(enemy)
   UI.print("#{e.name} blocks your path! Commands: fight, item <name>, run", "warn")
 end
 
+def hp_box(css, name, hp, max)
+  pct = [[hp, 0].max * 100 / max, 100].min
+  "<div class='hpbox #{css}'>#{UI.esc(name)}<span class='bar'><b style='width:#{pct}%'></b></span>#{[hp, 0].max}/#{max}</div>"
+end
+
 def show_battle
   e = $foe[:def]; h = $hero
-  UI.view("  #{e.name}\n  HP #{hp_bar($foe[:hp], e.hp)} #{[$foe[:hp], 0].max}/#{e.hp}\n\n" + BATTLE_ART + "\n  #{h.role}\n  HP #{hp_bar(h.hp, h.max_hp)} #{[h.hp, 0].max}/#{h.max_hp}\n", "BATTLE")
+  UI.image(here.image, "BATTLE", hp_box("tl", e.name, $foe[:hp], e.hp) + hp_box("br", h.role, h.hp, h.max_hp))
   UI.hud
 end
 
@@ -262,8 +258,8 @@ end
 
 def win_battle
   e = $foe[:def]
-  $hero.pounds += e.pounds
-  UI.print("#{e.name} is defeated! You gain #{e.pounds} pounds.", "good")
+  $hero.gold += e.gold
+  UI.print("#{e.name} is defeated! You gain #{e.gold} gold.", "good")
   QUESTS.each_value do |q|
     o = q.objective
     complete_quest(q) if $hero.quests[q.id] == :active && o[:type] == :defeat && o[:enemy] == e.name
@@ -308,10 +304,8 @@ end
 
 # ---------------------------------------------------------------- game flow
 def show_select
-  rows = PATHWAYS.each_with_index.map { |(path, role), i| "#{(i + 1).to_s.rjust(2)} #{path} - #{role}".ljust(34) }
-  half = rows.size / 2
-  lines = (0...half).map { |i| rows[i] + rows[i + half] }
-  UI.view("  CHOOSE THE SEQUENCE 9 POTION YOU WILL DRINK\n\n" + lines.join("\n") + "\n", "Pathways", true)
+  items = PATHWAYS.each_with_index.map { |(path, role), i| "#{i + 1}. #{path} - #{role}" }
+  UI.list("Choose the Sequence 9 potion you will drink", items, "Pathways")
   UI.print("Which Pathway will you walk? Type a number (1-22) or a name, then press Enter.")
 end
 
@@ -342,7 +336,7 @@ def explore_command(verb, arg)
   when "inv", "inventory", "bag" then inventory
   when "use" then use_item(arg)
   when "quests", "quest" then quests_list
-  when "status" then UI.print("#{$hero.role} (#{$hero.pathway}) Seq 9 | HP #{$hero.hp}/#{$hero.max_hp} | ATK #{$hero.atk} | pounds #{$hero.pounds}")
+  when "status" then UI.print("#{$hero.role} (#{$hero.pathway}) Seq 9 | HP #{$hero.hp}/#{$hero.max_hp} | ATK #{$hero.atk} | Gold #{$hero.gold}")
   when "fight"
     foe = ENEMIES.values.find { |e| e.place == $hero.place && e.name.downcase.include?(arg.downcase) } unless arg.empty?
     foe ? battle(foe) : UI.print("Fight whom? (Enemies here: #{ENEMIES.values.select { |e| e.place == $hero.place }.map(&:name).join(', ')})")
