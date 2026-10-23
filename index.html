@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tingen Nights</title>
+<style>
+@font-face{font-family:Silver;src:url(assets/Silver.ttf) format("truetype")}
+:root{--bg:#161b21;--pn:#212a33;--ink:#ece1c4;--dim:#8d8b7e;--gold:#d2aa4e;--red:#c0485a;--grn:#7fcf7a;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:24px/1.2 Silver,monospace}
+#game{max-width:780px;margin:0 auto;padding:12px}
+.box{border:3px double var(--gold);background:var(--pn);padding:10px}
+#top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
+#loc{color:var(--gold);font-size:34px}
+#avatar{width:64px;height:64px;border-radius:50%;border:3px solid var(--gold);background:#2d3843 center/cover;flex:none}
+#view{font-size:min(25px,calc((100vw - 56px)/29.4));min-height:calc(16*.8em);overflow:hidden}
+#view div{height:.8em;line-height:.8em;white-space:nowrap}
+#view i{display:inline-block;width:.42em;text-align:center;font-style:normal}
+#hud{color:var(--dim);font-size:20px;margin:8px 0}
+#log{height:260px;overflow-y:auto;margin-top:8px;font-size:22px}
+#log .echo{color:var(--gold)}#log .dim{color:var(--dim)}#log .good{color:var(--grn)}#log .warn{color:var(--red)}
+#row{display:flex;gap:8px;margin-top:8px;align-items:center}
+#cmd{flex:1;font:inherit;color:var(--ink);background:#10151a;border:3px solid var(--gold);padding:6px 10px}
+</style></head><body>
+<div id="game">
+  <div class="box">
+    <div id="top"><span id="loc">Loading Ruby...</span><div id="avatar" title="Avatar placeholder (add assets/avatar.png)"></div></div>
+    <div id="view"></div>
+  </div>
+  <div id="hud"></div>
+  <div class="box" id="log" aria-live="polite">Loading Ruby (WebAssembly)... one moment.</div>
+  <div id="row"><span>&gt;</span><input id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a command, e.g. help"></div>
+</div>
+<script>
+// Optional avatar: drop a PNG at assets/avatar.png and it replaces the placeholder circle.
+const im=new Image();im.onload=()=>document.getElementById('avatar').style.backgroundImage="url(assets/avatar.png)";im.src='assets/avatar.png';
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@ruby/3.4-wasm-wasi@2.7.1/dist/browser.script.iife.js"></script>
+<script type="text/ruby" src="engine.rb"></script>
+<script type="text/ruby" src="content.rb"></script>
+</body></html>
