@@ -49,15 +49,15 @@ create_store :shop, "Placeholder Shop", art: SHOP_ART, exits: [:street],
 create_npc "Quest Giver",   :street, ["Placeholder dialogue from the Quest Giver."]
 create_npc "Old Collector", :alley,  ["Placeholder dialogue from the Old Collector."]
 
-create_enemy "Placeholder Beyonder", :alley, hp: 30, atk: 5, gold: 10
+create_enemy "Placeholder Beyonder", :alley, hp: 30, atk: 5, pounds: 10
 
 create_quest :defeat_quest, "Placeholder Quest A", giver: "Quest Giver",
              objective: { type: :defeat, enemy: "Placeholder Beyonder" },
-             reward: { gold: 25, items: [:potion] }
+             reward: { pounds: 25, items: [:potion] }
 
 create_quest :deliver_quest, "Placeholder Quest B", giver: "Old Collector",
              objective: { type: :deliver, item: :token },
-             reward: { gold: 15 }
+             reward: { pounds: 15 }
 
 set_start :street, { potion: 2 }
 start_game
