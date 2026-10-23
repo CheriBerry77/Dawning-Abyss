@@ -14,9 +14,9 @@ PATHWAYS = [
 Item  = Struct.new(:id, :name, :desc, :heal)
 Place = Struct.new(:id, :name, :art, :exits, :stock)   # stock (Hash item_id => price) is set only for stores
 Npc   = Struct.new(:name, :place, :dialogue)
-Enemy = Struct.new(:name, :place, :hp, :atk, :gold)
+Enemy = Struct.new(:name, :place, :hp, :atk, :pounds)
 Quest = Struct.new(:id, :title, :giver, :objective, :reward)
-Hero  = Struct.new(:pathway, :role, :hp, :max_hp, :atk, :gold, :inv, :quests, :place)
+Hero  = Struct.new(:pathway, :role, :hp, :max_hp, :atk, :pounds, :inv, :quests, :place)
 
 ITEMS = {}; PLACES = {}; NPCS = {}; ENEMIES = {}; QUESTS = {}
 $hero = nil; $foe = nil; $mode = :select; $start = nil; $start_items = {}
@@ -55,7 +55,7 @@ module UI
 
   def self.hud
     h = $hero
-    el("hud")[:textContent] = h ? "#{h.role} (#{h.pathway}) | HP #{h.hp}/#{h.max_hp} | Gold #{h.gold}" : ""
+    el("hud")[:textContent] = h ? "#{h.role} (#{h.pathway}) | HP #{h.hp}/#{h.max_hp} | pounds #{h.pounds}" : ""
   end
 
   def self.on_command(&handler)
@@ -92,12 +92,12 @@ def create_store(id, name, art:, exits:, keeper:, dialogue:, stock:)
   create_npc(keeper, id, dialogue)
 end
 
-def create_enemy(name, location, hp:, atk:, gold: 0)
-  ENEMIES[name] = Enemy.new(name, location, hp, atk, gold)
+def create_enemy(name, location, hp:, atk:, pounds: 0)
+  ENEMIES[name] = Enemy.new(name, location, hp, atk, pounds)
 end
 
 # objective: { type: :defeat, enemy: "Name" }  (reward on victory)
-#         or { type: :deliver, item: :item_id } (give it to the giver NPC). reward: { gold: 10, items: [:id] }
+#         or { type: :deliver, item: :item_id } (give it to the giver NPC). reward: { pounds: 10, items: [:id] }
 def create_quest(id, title, giver:, objective:, reward:)
   QUESTS[id] = Quest.new(id, title, giver, objective, reward)
 end
@@ -164,10 +164,10 @@ end
 def complete_quest(q)
   $hero.quests[q.id] = :done
   r = q.reward
-  $hero.gold += r[:gold].to_i
+  $hero.pounds += r[:pounds].to_i
   Array(r[:items]).each { |i| give_item(i) }
   names = Array(r[:items]).map { |i| ITEMS[i].name }
-  UI.print("[Quest complete] #{q.title}. Reward: #{r[:gold].to_i} gold#{names.empty? ? '' : ', ' + names.join(', ')}.", "good")
+  UI.print("[Quest complete] #{q.title}. Reward: #{r[:pounds].to_i} pounds#{names.empty? ? '' : ', ' + names.join(', ')}.", "good")
   UI.hud
 end
 
@@ -193,7 +193,7 @@ def talk(text)
   end
   return unless here.stock && npc.place == here.id
   UI.print("For sale:", "dim")
-  here.stock.each { |id, price| UI.print("  #{ITEMS[id].name} - #{price} gold (#{ITEMS[id].desc})", "dim") }
+  here.stock.each { |id, price| UI.print("  #{ITEMS[id].name} - #{price} pounds (#{ITEMS[id].desc})", "dim") }
 end
 
 def buy(text)
@@ -201,10 +201,10 @@ def buy(text)
   id = here.stock.keys.find { |i| ITEMS[i].name.downcase.include?(text.downcase) } unless text.empty?
   return UI.print("The shop doesn't sell that.") unless id
   price = here.stock[id]
-  return UI.print("You need #{price} gold.") if $hero.gold < price
-  $hero.gold -= price
+  return UI.print("You need #{price} pounds.") if $hero.pounds < price
+  $hero.pounds -= price
   give_item(id)
-  UI.print("You bought #{ITEMS[id].name} for #{price} gold.", "good")
+  UI.print("You bought #{ITEMS[id].name} for #{price} pounds.", "good")
   UI.hud
 end
 
@@ -262,8 +262,8 @@ end
 
 def win_battle
   e = $foe[:def]
-  $hero.gold += e.gold
-  UI.print("#{e.name} is defeated! You gain #{e.gold} gold.", "good")
+  $hero.pounds += e.pounds
+  UI.print("#{e.name} is defeated! You gain #{e.pounds} pounds.", "good")
   QUESTS.each_value do |q|
     o = q.objective
     complete_quest(q) if $hero.quests[q.id] == :active && o[:type] == :defeat && o[:enemy] == e.name
@@ -342,7 +342,7 @@ def explore_command(verb, arg)
   when "inv", "inventory", "bag" then inventory
   when "use" then use_item(arg)
   when "quests", "quest" then quests_list
-  when "status" then UI.print("#{$hero.role} (#{$hero.pathway}) Seq 9 | HP #{$hero.hp}/#{$hero.max_hp} | ATK #{$hero.atk} | Gold #{$hero.gold}")
+  when "status" then UI.print("#{$hero.role} (#{$hero.pathway}) Seq 9 | HP #{$hero.hp}/#{$hero.max_hp} | ATK #{$hero.atk} | pounds #{$hero.pounds}")
   when "fight"
     foe = ENEMIES.values.find { |e| e.place == $hero.place && e.name.downcase.include?(arg.downcase) } unless arg.empty?
     foe ? battle(foe) : UI.print("Fight whom? (Enemies here: #{ENEMIES.values.select { |e| e.place == $hero.place }.map(&:name).join(', ')})")
