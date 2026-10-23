@@ -33,9 +33,10 @@ module UI
   end
 
   # Static window: every character gets a fixed-width cell so the proportional Silver font keeps ASCII art aligned.
-  def self.view(art, title = "")
+  def self.view(art, title = "", spaced = false)
     rows = art.lines.map { |l| "<div>" + l.chomp.chars.map { |c| "<i>#{c == ' ' ? '&nbsp;' : esc(c)}</i>" }.join + "</div>" }
     el("view")[:innerHTML] = rows.join
+    el("view")[:className] = spaced ? "spaced" : ""
     el("loc")[:textContent] = title
   end
 
@@ -310,7 +311,7 @@ def show_select
   rows = PATHWAYS.each_with_index.map { |(path, role), i| "#{(i + 1).to_s.rjust(2)} #{path} - #{role}".ljust(34) }
   half = rows.size / 2
   lines = (0...half).map { |i| rows[i] + rows[i + half] }
-  UI.view("  CHOOSE THE SEQUENCE 9 POTION YOU WILL DRINK\n\n" + lines.join("\n"), "Pathways")
+  UI.view("  CHOOSE THE SEQUENCE 9 POTION YOU WILL DRINK\n\n" + lines.join("\n") + "\n", "Pathways", true)
   UI.print("Which Pathway will you walk? Type a number (1-22) or a name, then press Enter.")
 end
 

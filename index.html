@@ -2,18 +2,20 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tingen Nights</title>
+<link rel="preload" href="assets/Silver.ttf" as="font" type="font/ttf" crossorigin>
 <style>
-@font-face{font-family:Silver;src:url(assets/Silver.ttf) format("truetype")}
+@font-face{font-family:Silver;src:url(assets/Silver.ttf) format("truetype");font-display:block}
 :root{--bg:#161b21;--pn:#212a33;--ink:#ece1c4;--dim:#8d8b7e;--gold:#d2aa4e;--red:#c0485a;--grn:#7fcf7a;color-scheme:dark}
-*{box-sizing:border-box}
+*{box-sizing:border-box;font-family:Silver,monospace}
 body{margin:0;background:var(--bg);color:var(--ink);font:24px/1.2 Silver,monospace}
 #game{max-width:780px;margin:0 auto;padding:12px}
 .box{border:3px double var(--gold);background:var(--pn);padding:10px}
 #top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px}
 #loc{color:var(--gold);font-size:34px}
 #avatar{width:64px;height:64px;border-radius:50%;border:3px solid var(--gold);background:#2d3843 center/cover;flex:none}
-#view{font-size:min(25px,calc((100vw - 56px)/29.4));min-height:calc(16*.8em);overflow:hidden}
+#view{font-size:min(25px,calc((100vw - 56px)/29.4));min-height:13em;overflow:hidden}
 #view div{height:.8em;line-height:.8em;white-space:nowrap}
+#view.spaced div{height:1em;line-height:1em}
 #view i{display:inline-block;width:.42em;text-align:center;font-style:normal}
 #hud{color:var(--dim);font-size:20px;margin:8px 0}
 #log{height:260px;overflow-y:auto;margin-top:8px;font-size:22px}
