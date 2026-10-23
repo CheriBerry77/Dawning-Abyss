@@ -265,7 +265,7 @@ const setScreen=h=>{$('#app').innerHTML=h};
 
 function selectScreen(){
   keyh=null;
-  setScreen(`<h1>Tingen Nights</h1><p class=sub>Beyond the fog, potions grant power and cost sanity. Choose the Pathway whose Sequence 9 potion you will drink.</p><div id=sg>${PATHS.map((p,i)=>`<button data-i=${i} style="--c:${TY[p.t][1]}">${p.n}</button>`).join('')}</div><div id=sd class=box></div>`);
+  setScreen(`<h1>Tingen Nights</h1><p class=sub>Beyond the fog, potions grant power and cost sanity. Choose the Pathway whose Sequence 9 potion you will drink. Based on the novel Lord of the Mysteries.</p><div id=sg>${PATHS.map((p,i)=>`<button data-i=${i} style="--c:${TY[p.t][1]}">${p.n}</button>`).join('')}</div><div id=sd class=box></div>`);
   $('#sg').onclick=e=>{const b=e.target.closest('button');if(b){sel=+b.dataset.i;detail()}};detail();
 }
 function detail(){
